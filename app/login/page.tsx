@@ -8,16 +8,17 @@ import { loginOwner, loginContractor } from "./actions"
 export default async function LoginPage({
     searchParams,
 }: {
-    searchParams: Promise<{ message: string }>
+    searchParams: Promise<{ message?: string; tab?: string }>
 }) {
-    const { message } = await searchParams
+    const { message, tab } = await searchParams
+    const defaultTab = tab === 'owner' ? 'owner' : 'contractor'
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
             <div className="w-full max-w-md space-y-4">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Parking Manager</h1>
-                    <p className="text-gray-500">Monthly Parking Management System</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">駐車場管理システム</h1>
+                    <p className="text-gray-500">月極駐車場の契約・支払い管理</p>
                 </div>
 
                 {message && (
@@ -26,28 +27,40 @@ export default async function LoginPage({
                     </div>
                 )}
 
-                <Tabs defaultValue="contractor" className="w-full">
+                <Tabs defaultValue={defaultTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="contractor">Contractor</TabsTrigger>
-                        <TabsTrigger value="owner">Owner</TabsTrigger>
+                        <TabsTrigger value="contractor">利用者</TabsTrigger>
+                        <TabsTrigger value="owner">オーナー</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="contractor">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Contractor Access</CardTitle>
+                                <CardTitle>利用者アクセス</CardTitle>
                                 <CardDescription>
-                                    Enter your registered name to access your portal.
+                                    登録されているお名前を入力してポータルにアクセスしてください。
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form action={loginContractor} className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="name">Full Name</Label>
-                                        <Input id="name" name="name" placeholder="e.g. Tanaka" required />
+                                        <Label htmlFor="name">お名前</Label>
+                                        <Input id="name" name="name" placeholder="例: 田中" required />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="phone">電話番号下4桁</Label>
+                                        <Input
+                                            id="phone"
+                                            name="phone"
+                                            type="text"
+                                            pattern="[0-9]{4}"
+                                            maxLength={4}
+                                            placeholder="1234"
+                                            required
+                                        />
                                     </div>
                                     <Button type="submit" className="w-full">
-                                        Access Portal
+                                        ポータルにアクセス
                                     </Button>
                                 </form>
                             </CardContent>
@@ -57,23 +70,23 @@ export default async function LoginPage({
                     <TabsContent value="owner">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Owner Login</CardTitle>
+                                <CardTitle>オーナーログイン</CardTitle>
                                 <CardDescription>
-                                    Secure login for parking management.
+                                    駐車場管理用のセキュアログイン。
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form action={loginOwner} className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">Email</Label>
+                                        <Label htmlFor="email">メールアドレス</Label>
                                         <Input id="email" name="email" type="email" placeholder="owner@example.com" required />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="password">Password</Label>
+                                        <Label htmlFor="password">パスワード</Label>
                                         <Input id="password" name="password" type="password" required />
                                     </div>
                                     <Button type="submit" className="w-full">
-                                        Login
+                                        ログイン
                                     </Button>
                                 </form>
                             </CardContent>

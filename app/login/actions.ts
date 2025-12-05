@@ -23,19 +23,26 @@ export async function loginOwner(formData: FormData) {
 
 export async function loginContractor(formData: FormData) {
     const name = formData.get('name') as string
+    const phone = formData.get('phone') as string
+
     const { createAdminClient } = await import("@/utils/supabase/admin")
     const supabase = createAdminClient()
 
-    // Find profile by name
+    // Find profile by name and phone_last4
     const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, role')
+        .select('id, role, phone_last4')
         .eq('full_name', name)
         .eq('role', 'contractor')
         .single()
 
     if (error || !profile) {
         return redirect('/login?message=Contractor not found')
+    }
+
+    // Verify phone_last4
+    if (profile.phone_last4 !== phone) {
+        return redirect('/login?message=Invalid phone number')
     }
 
     // Set secure cookie for contractor session

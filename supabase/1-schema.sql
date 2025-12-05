@@ -1,13 +1,21 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
+-- Drop existing tables (for development - be careful in production!)
+drop table if exists public.payments cascade;
+drop table if exists public.profiles cascade;
+
 -- Create profiles table
 create table if not exists public.profiles (
   id uuid primary key default gen_random_uuid(),
   auth_id uuid references auth.users(id), -- Nullable, only for Owner
   full_name text unique not null,
   role text not null check (role in ('owner', 'contractor')),
-  monthly_fee integer default 10000,
+  monthly_fee integer default 3000, -- Default monthly fee
+  phone_number text, -- Full phone number (e.g., 090-1234-5678)
+  phone_last4 text, -- Last 4 digits for authentication
+  contract_start_month text, -- Format: YYYY-MM, for contractors only
+  contract_end_month text, -- Format: YYYY-MM, NULL means indefinite contract
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
