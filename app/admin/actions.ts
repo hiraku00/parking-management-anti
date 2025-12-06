@@ -36,6 +36,40 @@ export async function addContractor(formData: FormData) {
     return { success: true }
 }
 
+export async function updateContractor(formData: FormData) {
+    const id = formData.get('id') as string
+    const name = formData.get('name') as string
+    const phoneNumber = formData.get('phoneNumber') as string
+    const monthlyFee = parseInt(formData.get('monthlyFee') as string)
+    const contractStart = formData.get('contractStart') as string
+    const contractEnd = formData.get('contractEnd') as string || null
+
+    // Extract last 4 digits from phone number
+    const phoneLast4 = phoneNumber.replace(/\D/g, '').slice(-4)
+
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({
+            full_name: name,
+            monthly_fee: monthlyFee,
+            phone_number: phoneNumber,
+            phone_last4: phoneLast4,
+            contract_start_month: contractStart,
+            contract_end_month: contractEnd,
+        })
+        .eq('id', id)
+
+    if (error) {
+        console.error('Error updating contractor:', error)
+        return { error: 'Failed to update contractor' }
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+}
+
 export async function deleteContractor(formData: FormData) {
     const id = formData.get('id') as string
     const supabase = await createClient()
@@ -46,7 +80,12 @@ export async function deleteContractor(formData: FormData) {
         .eq('id', id)
 
     if (error) {
-        return { error: 'Failed to delete contractor' }
+        console.error('Error deleting contractor:', error)
+        // Check for foreign key violation (e.g., payment history exists)
+        if (error.code === '23503') {
+            return { error: '支払い履歴があるため削除できません。' }
+        }
+        return { error: '契約者の削除に失敗しました' }
     }
 
     revalidatePath('/admin')
