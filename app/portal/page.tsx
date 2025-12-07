@@ -128,6 +128,7 @@ export default async function PortalPage({
                             <TableHead>対象月</TableHead>
                             <TableHead>金額</TableHead>
                             <TableHead>ステータス</TableHead>
+                            <TableHead>領収書</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -141,11 +142,21 @@ export default async function PortalPage({
                                         {payment.status === 'succeeded' ? '支払済' : payment.status}
                                     </Badge>
                                 </TableCell>
+                                <TableCell>
+                                    {payment.status === 'succeeded' && (
+                                        <div className="flex items-center gap-2">
+                                            <a href={`/portal/receipt/${payment.id}`} target="_blank" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm bg-blue-50 px-3 py-1 rounded-full border border-blue-200 hover:bg-blue-100 transition-colors">
+                                                <span>📄</span>
+                                                発行
+                                            </a>
+                                        </div>
+                                    )}
+                                </TableCell>
                             </TableRow>
                         ))}
                         {(!payments || payments.length === 0) && (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center text-gray-500">
+                                <TableCell colSpan={5} className="text-center text-gray-500">
                                     支払い履歴がありません。
                                 </TableCell>
                             </TableRow>

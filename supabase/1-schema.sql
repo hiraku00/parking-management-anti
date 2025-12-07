@@ -16,6 +16,9 @@ create table if not exists public.profiles (
   phone_last4 text, -- Last 4 digits for authentication
   contract_start_month text, -- Format: YYYY-MM, for contractors only
   contract_end_month text, -- Format: YYYY-MM, NULL means indefinite contract
+  company_name text, -- Owner's company name or trade name
+  address text, -- Owner's address for receipts
+  invoice_registration_number text, -- Owner's Invoice Registration Number (e.g. T1234567890123)
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
