@@ -91,3 +91,30 @@ export async function deleteContractor(formData: FormData) {
     revalidatePath('/admin')
     return { success: true }
 }
+
+export async function createManualPayment(formData: FormData) {
+    const userId = formData.get('userId') as string
+    const amount = parseInt(formData.get('amount') as string)
+    const targetMonth = formData.get('targetMonth') as string
+
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('payments')
+        .insert({
+            user_id: userId,
+            amount: amount,
+            currency: 'jpy',
+            status: 'succeeded',
+            target_month: targetMonth,
+            stripe_session_id: 'manual_entry', // Mark as manual payment
+        })
+
+    if (error) {
+        console.error('Error creating manual payment:', error)
+        return { error: '入金記録の作成に失敗しました' }
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+}

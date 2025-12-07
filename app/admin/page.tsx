@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server"
 import { AddContractorDialog } from "./add-contractor-dialog"
 import { EditContractorDialog } from "./edit-contractor-dialog"
 import { DeleteContractorButton } from "./delete-contractor-button"
+import { ManualPaymentDialog } from "./manual-payment-dialog"
 import {
     Table,
     TableBody,
@@ -130,6 +131,12 @@ export default async function AdminPage() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
+                                                <ManualPaymentDialog
+                                                    contractorId={contractor.id}
+                                                    contractorName={contractor.full_name}
+                                                    monthlyFee={contractor.monthly_fee}
+                                                    unpaidMonths={unpaidMonths}
+                                                />
                                                 <EditContractorDialog contractor={contractor} />
                                                 <DeleteContractorButton id={contractor.id} name={contractor.full_name} />
                                             </div>
