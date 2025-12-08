@@ -45,7 +45,7 @@ export default async function LoginPage({
                                 <form action={loginContractor} className="space-y-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="name">お名前</Label>
-                                        <Input id="name" name="name" placeholder="例: 田中" required />
+                                        <Input id="name" name="name" placeholder="例: 田中太郎" required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="phone">電話番号下4桁</Label>

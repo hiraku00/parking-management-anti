@@ -34,6 +34,13 @@ export default async function PortalPage({
         .eq("user_id", contractorId)
         .order("created_at", { ascending: false })
 
+    // Fetch owner profile for bank details
+    const { data: owner } = await supabase
+        .from("profiles")
+        .select("bank_name, bank_branch_name, account_type, account_number, account_holder_name")
+        .eq("role", "owner")
+        .single()
+
     const paidMonths = new Set(payments?.filter(p => p.status === 'succeeded').map((p) => p.target_month))
 
     // Generate list of months from contract start to current month only (no future months)
@@ -70,7 +77,9 @@ export default async function PortalPage({
             <Card>
                 <CardHeader>
                     <CardTitle>未払いの月額料金</CardTitle>
-                    <CardDescription>お支払いが必要な月が表示されます。</CardDescription>
+                    <CardDescription>
+                        クレジットカードでのお支払い、または銀行振込が可能です。
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {unpaidMonths.length === 0 ? (
@@ -78,42 +87,92 @@ export default async function PortalPage({
                             すべてのお支払いが完了しています。
                         </p>
                     ) : (
-                        <div className="space-y-3">
-                            {unpaidMonths.map((m) => {
-                                const isPast = m < currentMonthStr
-                                const isCurrent = m === currentMonthStr
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                {unpaidMonths.map((m) => {
+                                    const isPast = m < currentMonthStr
+                                    const isCurrent = m === currentMonthStr
 
-                                return (
-                                    <div
-                                        key={m}
-                                        className={`flex items-center justify-between p-4 border-2 rounded-lg ${isCurrent ? 'border-blue-500 bg-blue-50' :
-                                            isPast ? 'border-red-300 bg-red-50' :
-                                                'border-gray-200'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <span className="font-medium text-lg">{m}</span>
-                                            {isCurrent && <Badge className="bg-blue-600">今月</Badge>}
-                                            {isPast && <Badge variant="destructive">未払い</Badge>}
+                                    return (
+                                        <div
+                                            key={m}
+                                            className={`flex items-center justify-between p-4 border-2 rounded-lg ${isCurrent ? 'border-blue-500 bg-blue-50' :
+                                                isPast ? 'border-red-300 bg-red-50' :
+                                                    'border-gray-200'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <span className="font-medium text-lg">{m}</span>
+                                                {isCurrent && <Badge className="bg-blue-600">今月</Badge>}
+                                                {isPast && <Badge variant="destructive">未払い</Badge>}
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-lg font-semibold">
+                                                    ¥{contractor?.monthly_fee.toLocaleString()}
+                                                </span>
+                                                <form action={createCheckoutSession}>
+                                                    <input type="hidden" name="targetMonth" value={m} />
+                                                    <Button
+                                                        type="submit"
+                                                        variant={isPast ? "destructive" : "default"}
+                                                        size="lg"
+                                                    >
+                                                        カードで支払う
+                                                    </Button>
+                                                </form>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-lg font-semibold">
-                                                ¥{contractor?.monthly_fee.toLocaleString()}
+                                    )
+                                })}
+                            </div>
+
+                            {/* Bank Transfer Information (Embedded as an alternative option) */}
+                            {owner?.bank_name && (
+                                <div className="mt-8 pt-6 border-t">
+                                    <h3 className="text-md font-semibold mb-3 flex items-center gap-2">
+                                        <span>🏦</span> 銀行振込でのお支払い
+                                    </h3>
+                                    <div className="bg-gray-50 p-4 rounded-md text-sm">
+                                        <p className="mb-4 text-gray-700">
+                                            以下の口座へのお振込みも受け付けております。<br />
+                                            入金確認まで数日かかる場合があります。
+                                        </p>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mb-4 bg-white p-3 rounded border">
+                                            <div className="flex justify-between sm:justify-start sm:gap-4">
+                                                <span className="text-gray-500 w-20">銀行名</span>
+                                                <span className="font-medium">{owner.bank_name}</span>
+                                            </div>
+                                            <div className="flex justify-between sm:justify-start sm:gap-4">
+                                                <span className="text-gray-500 w-20">支店名</span>
+                                                <span className="font-medium">{owner.bank_branch_name}</span>
+                                            </div>
+                                            <div className="flex justify-between sm:justify-start sm:gap-4">
+                                                <span className="text-gray-500 w-20">口座種別</span>
+                                                <span className="font-medium">
+                                                    {owner.account_type === 'current' ? '当座' : '普通'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between sm:justify-start sm:gap-4">
+                                                <span className="text-gray-500 w-20">口座番号</span>
+                                                <span className="font-medium">{owner.account_number}</span>
+                                            </div>
+                                            <div className="col-span-1 sm:col-span-2 flex justify-between sm:justify-start sm:gap-4 border-t pt-2 mt-2">
+                                                <span className="text-gray-500 w-20">口座名義</span>
+                                                <span className="font-medium">{owner.account_holder_name}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-yellow-800 text-xs">
+                                            <strong>振込名義について:</strong><br />
+                                            原則、契約者ご本人様のお名義（カナ）でお振込みください。<br />
+                                            <span className="text-yellow-900 mt-1 block">
+                                                ※ご本人様名義以外の口座からお振込みされる場合は、振込依頼人名を契約者ご本人様のカナ氏名に変更してください。
                                             </span>
-                                            <form action={createCheckoutSession}>
-                                                <input type="hidden" name="targetMonth" value={m} />
-                                                <Button
-                                                    type="submit"
-                                                    variant={isPast ? "destructive" : "default"}
-                                                    size="lg"
-                                                >
-                                                    支払う
-                                                </Button>
-                                            </form>
                                         </div>
                                     </div>
-                                )
-                            })}
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
