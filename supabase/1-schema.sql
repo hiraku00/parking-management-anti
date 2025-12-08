@@ -19,6 +19,11 @@ create table if not exists public.profiles (
   company_name text, -- Owner's company name or trade name
   address text, -- Owner's address for receipts
   invoice_registration_number text, -- Owner's Invoice Registration Number (e.g. T1234567890123)
+  bank_name text, -- Owner's Bank Name
+  bank_branch_name text, -- Owner's Bank Branch Name
+  account_type text, -- 'ordinary' (futsu) or 'current' (toza)
+  account_number text, -- Account Number
+  account_holder_name text, -- Account Holder Name
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -31,6 +36,7 @@ create table if not exists public.payments (
   status text not null check (status in ('pending', 'succeeded', 'failed')),
   target_month text not null, -- Format: YYYY-MM
   stripe_session_id text,
+  payment_method text check (payment_method in ('stripe', 'cash', 'bank_transfer')), -- 'stripe', 'cash', 'bank_transfer'
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

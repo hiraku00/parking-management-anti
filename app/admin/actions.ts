@@ -96,6 +96,7 @@ export async function createManualPayment(formData: FormData) {
     const userId = formData.get('userId') as string
     const amount = parseInt(formData.get('amount') as string)
     const targetMonth = formData.get('targetMonth') as string
+    const paymentMethod = formData.get('paymentMethod') as string || 'cash'
 
     const supabase = await createClient()
 
@@ -108,6 +109,7 @@ export async function createManualPayment(formData: FormData) {
             status: 'succeeded',
             target_month: targetMonth,
             stripe_session_id: 'manual_entry', // Mark as manual payment
+            payment_method: paymentMethod,
         })
 
     if (error) {
@@ -116,5 +118,47 @@ export async function createManualPayment(formData: FormData) {
     }
 
     revalidatePath('/admin')
+    return { success: true }
+}
+
+export async function updateOwnerSettings(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { error: 'Unauthorized' }
+    }
+
+    const companyName = formData.get('companyName') as string
+    const address = formData.get('address') as string
+    const invoiceNumber = formData.get('invoiceNumber') as string
+    const bankName = formData.get('bankName') as string
+    const branchName = formData.get('branchName') as string
+    const accountType = formData.get('accountType') as string
+    const accountNumber = formData.get('accountNumber') as string
+    const accountHolder = formData.get('accountHolder') as string
+
+    // Update the owner profile. We assume there is only one owner profile linked to this auth user
+    const { error } = await supabase
+        .from('profiles')
+        .update({
+            company_name: companyName,
+            address: address,
+            invoice_registration_number: invoiceNumber,
+            bank_name: bankName,
+            bank_branch_name: branchName,
+            account_type: accountType,
+            account_number: accountNumber,
+            account_holder_name: accountHolder,
+        })
+        .eq('role', 'owner')
+        .eq('auth_id', user.id)
+
+    if (error) {
+        console.error('Error updating owner settings:', error)
+        return { error: '設定の保存に失敗しました' }
+    }
+
+    revalidatePath('/admin/settings')
     return { success: true }
 }
