@@ -11,7 +11,7 @@ export async function createCheckoutSession(formData: FormData) {
     const contractorId = cookieStore.get('contractor_id')?.value
 
     if (!contractorId) {
-        return redirect('/login')
+        return redirect('/login?message=セッションが切れました。再度ログインしてください。')
     }
 
     const { createAdminClient } = await import("@/utils/supabase/admin")

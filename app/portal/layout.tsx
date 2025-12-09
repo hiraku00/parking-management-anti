@@ -13,7 +13,7 @@ export default async function PortalLayout({
     const contractorId = cookieStore.get("contractor_id")?.value
 
     if (!contractorId) {
-        return redirect("/login")
+        return redirect("/login?message=セッションが切れました。再度ログインしてください。")
     }
 
     // Use Admin Client for custom auth
