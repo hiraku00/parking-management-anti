@@ -3,6 +3,7 @@ import { AddContractorDialog } from "./add-contractor-dialog"
 import { EditContractorDialog } from "./edit-contractor-dialog"
 import { DeleteContractorButton } from "./delete-contractor-button"
 import { ManualPaymentDialog } from "./manual-payment-dialog"
+import { calculateUnpaidMonths } from "@/utils/calculation"
 import {
     Table,
     TableBody,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ApprovePaymentButton } from "./approve-payment-button"
 
 export default async function AdminPage() {
     const supabase = await createClient()
@@ -24,11 +26,14 @@ export default async function AdminPage() {
         .eq('role', 'contractor')
         .order('full_name')
 
-    // Fetch all successful payments to calculate arrears
-    const { data: payments } = await supabase
+    // Fetch all payments
+    const { data: allPayments } = await supabase
         .from('payments')
-        .select('user_id, target_month')
-        .eq('status', 'succeeded')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    const payments = allPayments?.filter(p => p.status === 'succeeded') || []
+    const pendingPayments = allPayments?.filter(p => p.status === 'pending') || []
 
     // Group payments by user
     const userPaidMonths = new Map<string, Set<string>>()
@@ -48,6 +53,55 @@ export default async function AdminPage() {
                 <h2 className="text-3xl font-bold tracking-tight">概要</h2>
                 <AddContractorDialog />
             </div>
+
+            {/* Pending Approvals */}
+            {pendingPayments.length > 0 && (
+                <Card className="border-yellow-200 bg-yellow-50">
+                    <CardHeader>
+                        <CardTitle className="text-yellow-800 flex items-center gap-2">
+                            🔔 承認待ちの振込 ({pendingPayments.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>報告日</TableHead>
+                                    <TableHead>契約者名</TableHead>
+                                    <TableHead>対象月</TableHead>
+                                    <TableHead>振込名義 / 日付</TableHead>
+                                    <TableHead>金額</TableHead>
+                                    <TableHead>操作</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {pendingPayments.map((payment) => {
+                                    const contractor = contractors?.find(c => c.id === payment.user_id)
+                                    const metadata = payment.metadata as any
+
+                                    return (
+                                        <TableRow key={payment.id} className="bg-white/50">
+                                            <TableCell>{new Date(payment.created_at).toLocaleDateString('ja-JP')}</TableCell>
+                                            <TableCell className="font-medium">{contractor?.full_name || '不明'}</TableCell>
+                                            <TableCell>{payment.target_month}</TableCell>
+                                            <TableCell>
+                                                <div className="text-sm">
+                                                    <div>{metadata?.transfer_name || '-'}</div>
+                                                    <div className="text-gray-500 text-xs">{metadata?.transfer_date || '-'}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>¥{payment.amount.toLocaleString()}</TableCell>
+                                            <TableCell>
+                                                <ApprovePaymentButton paymentId={payment.id} />
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
@@ -87,23 +141,12 @@ export default async function AdminPage() {
                         <TableBody>
                             {contractors?.map((contractor) => {
                                 const paidMonths = userPaidMonths.get(contractor.id) || new Set()
-
-                                // Calculate unpaid months logic (same as portal)
-                                const months = []
-                                const contractStart = contractor.contract_start_month || currentMonth
-                                const startDate = new Date(contractStart + '-01')
-                                const endDate = new Date(currentMonth + '-01')
-
-                                // If contract has ended, clamp to end date
-                                const actualEndDate = contractor.contract_end_month
-                                    ? new Date(Math.min(new Date(contractor.contract_end_month + '-01').getTime(), endDate.getTime()))
-                                    : endDate
-
-                                for (let d = new Date(startDate); d <= actualEndDate; d.setMonth(d.getMonth() + 1)) {
-                                    months.push(d.toISOString().slice(0, 7))
-                                }
-
-                                const unpaidMonths = months.filter(m => !paidMonths.has(m))
+                                const unpaidMonths = calculateUnpaidMonths(
+                                    contractor.contract_start_month,
+                                    contractor.contract_end_month,
+                                    paidMonths,
+                                    currentMonth
+                                )
                                 const unpaidPastCount = unpaidMonths.filter(m => m < currentMonth).length
                                 const isCurrentMonthUnpaid = unpaidMonths.includes(currentMonth)
 

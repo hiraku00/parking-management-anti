@@ -54,3 +54,60 @@ export async function createCheckoutSession(formData: FormData) {
         redirect(session.url)
     }
 }
+
+export async function reportBankTransfer(formData: FormData) {
+    const contractorId = formData.get('contractorId') as string
+    const monthsStr = formData.get('months') as string
+    const transferName = formData.get('transferName') as string
+    const transferDate = formData.get('transferDate') as string
+
+    if (!contractorId || !monthsStr || !transferName || !transferDate) {
+        return { error: '必要な情報が不足しています。' }
+    }
+
+    const inputMonths = JSON.parse(monthsStr) as string[]
+
+    const { createAdminClient } = await import("@/utils/supabase/admin")
+    const supabase = createAdminClient()
+
+    // Create payment records for each month
+    const records = inputMonths.map(month => ({
+        user_id: contractorId,
+        amount: 3000, // Ideally fetch this from profile, but passed in dialog for display. Fetching again for safety.
+        currency: 'jpy',
+        status: 'pending', // Pending approval
+        target_month: month,
+        payment_method: 'bank_transfer',
+        metadata: {
+            transfer_name: transferName,
+            transfer_date: transferDate
+        }
+    }))
+
+    // Fetch monthly fee to be safe
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('monthly_fee')
+        .eq('id', contractorId)
+        .single()
+
+    if (profile) {
+        records.forEach(r => r.amount = profile.monthly_fee)
+    }
+
+    const { error } = await supabase
+        .from('payments')
+        .insert(records)
+
+    if (error) {
+        console.error('Payment report error:', error)
+        return { error: '報告の送信に失敗しました。' }
+    }
+
+    // Revalidate paths
+    const { revalidatePath } = await import('next/cache')
+    revalidatePath('/portal')
+    revalidatePath('/admin')
+
+    return { success: true }
+}
