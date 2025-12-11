@@ -37,6 +37,7 @@ create table if not exists public.payments (
   target_month text not null, -- Format: YYYY-MM
   stripe_session_id text,
   payment_method text check (payment_method in ('stripe', 'cash', 'bank_transfer')), -- 'stripe', 'cash', 'bank_transfer'
+  metadata jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

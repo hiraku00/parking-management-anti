@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { createCheckoutSession } from "./actions"
+import { calculateUnpaidMonths } from "@/utils/calculation"
+import { BankTransferDialog } from "./bank-transfer-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { CollapsibleSection } from "@/components/collapsible-section"
 
@@ -42,28 +44,21 @@ export default async function PortalPage({
         .single()
 
     const paidMonths = new Set(payments?.filter(p => p.status === 'succeeded').map((p) => p.target_month))
+    const pendingMonths = new Set(payments?.filter(p => p.status === 'pending').map((p) => p.target_month))
 
-    // Generate list of months from contract start to current month only (no future months)
     const today = new Date()
     const currentMonthStr = today.toISOString().slice(0, 7)
-    const contractStartMonth = contractor?.contract_start_month || currentMonthStr
-    const contractEndMonth = contractor?.contract_end_month // Can be null (indefinite)
 
-    const months = []
-    const startDate = new Date(contractStartMonth + '-01')
-    const endDate = new Date(currentMonthStr + '-01') // Only up to current month
+    // unpaidMonthsFromCalc includes months that are NOT succeeded. 
+    // This INCLUDES pending months.
+    const unpaidMonthsFromCalc = calculateUnpaidMonths(
+        contractor?.contract_start_month || null,
+        contractor?.contract_end_month || null,
+        paidMonths
+    )
 
-    // If contract has ended, don't show months after end date
-    const actualEndDate = contractEndMonth
-        ? new Date(Math.min(new Date(contractEndMonth + '-01').getTime(), endDate.getTime()))
-        : endDate
-
-    for (let d = new Date(startDate); d <= actualEndDate; d.setMonth(d.getMonth() + 1)) {
-        months.push(d.toISOString().slice(0, 7))
-    }
-
-    // Filter to show only unpaid months
-    const unpaidMonths = months.filter(m => !paidMonths.has(m))
+    // Truely unpaid (not paid AND not pending) user for BankTransferDialog
+    const eligibleForTransferMonths = unpaidMonthsFromCalc.filter(m => !pendingMonths.has(m))
 
     return (
         <div className="space-y-6">
@@ -76,99 +71,128 @@ export default async function PortalPage({
             {/* Unpaid Months */}
             <Card>
                 <CardHeader>
-                    <CardTitle>未払いの月額料金</CardTitle>
-                    <CardDescription>
-                        クレジットカードでのお支払い、または銀行振込が可能です。
-                    </CardDescription>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <CardTitle>お支払いが必要な月</CardTitle>
+                            <CardDescription className="mt-1">
+                                クレジットカード決済は各月の行にあるボタンから、銀行振込はページ下部の案内をご覧ください。
+                            </CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    {unpaidMonths.length === 0 ? (
+                    {unpaidMonthsFromCalc.length === 0 ? (
                         <p className="text-center text-gray-500 py-8">
                             すべてのお支払いが完了しています。
                         </p>
                     ) : (
                         <div className="space-y-6">
                             <div className="space-y-3">
-                                {unpaidMonths.map((m) => {
+                                {unpaidMonthsFromCalc.map((m) => {
                                     const isPast = m < currentMonthStr
                                     const isCurrent = m === currentMonthStr
+                                    const isPending = pendingMonths.has(m)
 
                                     return (
                                         <div
                                             key={m}
-                                            className={`flex items-center justify-between p-4 border-2 rounded-lg ${isCurrent ? 'border-blue-500 bg-blue-50' :
-                                                isPast ? 'border-red-300 bg-red-50' :
-                                                    'border-gray-200'
+                                            className={`flex items-center justify-between p-4 border-2 rounded-lg 
+                                                ${isPending ? 'border-yellow-400 bg-yellow-50' :
+                                                    isCurrent ? 'border-blue-500 bg-blue-50' :
+                                                        isPast ? 'border-red-300 bg-red-50' :
+                                                            'border-gray-200'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-4">
                                                 <span className="font-medium text-lg">{m}</span>
-                                                {isCurrent && <Badge className="bg-blue-600">今月</Badge>}
-                                                {isPast && <Badge variant="destructive">未払い</Badge>}
+                                                {isPending && <Badge className="bg-yellow-500 hover:bg-yellow-600">確認中</Badge>}
+                                                {isCurrent && !isPending && <Badge className="bg-blue-600">今月</Badge>}
+                                                {isPast && !isPending && <Badge variant="destructive">未払い</Badge>}
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <span className="text-lg font-semibold">
                                                     ¥{contractor?.monthly_fee.toLocaleString()}
                                                 </span>
-                                                <form action={createCheckoutSession}>
-                                                    <input type="hidden" name="targetMonth" value={m} />
-                                                    <Button
-                                                        type="submit"
-                                                        variant={isPast ? "destructive" : "default"}
-                                                        size="lg"
-                                                    >
-                                                        カードで支払う
-                                                    </Button>
-                                                </form>
+                                                {isPending ? (
+                                                    <span className="text-sm text-yellow-700 font-medium">
+                                                        振込確認中
+                                                    </span>
+                                                ) : (
+                                                    <form action={createCheckoutSession}>
+                                                        <input type="hidden" name="targetMonth" value={m} />
+                                                        <Button
+                                                            type="submit"
+                                                            variant={isPast ? "destructive" : "default"}
+                                                            size="lg"
+                                                        >
+                                                            カードで支払う
+                                                        </Button>
+                                                    </form>
+                                                )}
                                             </div>
                                         </div>
                                     )
                                 })}
                             </div>
 
+
                             {/* Bank Transfer Information (Embedded as an alternative option) */}
+                            {/* Bank Transfer Information */}
                             {owner?.bank_name && (
-                                <div className="mt-8 pt-6 border-t">
-                                    <h3 className="text-md font-semibold mb-3 flex items-center gap-2">
-                                        <span>🏦</span> 銀行振込でのお支払い
-                                    </h3>
-                                    <div className="bg-gray-50 p-4 rounded-md text-sm">
-                                        <p className="mb-4 text-gray-700">
-                                            以下の口座へのお振込みも受け付けております。<br />
-                                            入金確認まで数日かかる場合があります。
+                                <div className="mt-8 pt-8 border-t-2 border-dashed">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-xl font-bold flex items-center gap-2">
+                                            <span>🏦</span> 銀行振込でのお支払い
+                                        </h3>
+                                        {eligibleForTransferMonths.length > 0 && (
+                                            <BankTransferDialog
+                                                contractorId={contractorId || ""}
+                                                unpaidMonths={eligibleForTransferMonths}
+                                                monthlyFee={contractor?.monthly_fee || 0}
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div className="bg-gray-50 p-6 rounded-lg text-sm border">
+                                        <p className="mb-4 text-base text-gray-800 font-medium">
+                                            以下の口座へお振込み後、「銀行振込完了を報告する」ボタンからご連絡ください。
                                         </p>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 mb-4 bg-white p-3 rounded border">
-                                            <div className="flex justify-between sm:justify-start sm:gap-4">
-                                                <span className="text-gray-500 w-20">銀行名</span>
-                                                <span className="font-medium">{owner.bank_name}</span>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mb-6 bg-white p-4 rounded border shadow-sm">
+                                            <div className="flex justify-between sm:justify-start sm:gap-4 border-b sm:border-b-0 pb-2 sm:pb-0">
+                                                <span className="text-gray-500 w-24">銀行名</span>
+                                                <span className="font-bold text-lg">{owner.bank_name}</span>
                                             </div>
-                                            <div className="flex justify-between sm:justify-start sm:gap-4">
-                                                <span className="text-gray-500 w-20">支店名</span>
-                                                <span className="font-medium">{owner.bank_branch_name}</span>
+                                            <div className="flex justify-between sm:justify-start sm:gap-4 border-b sm:border-b-0 pb-2 sm:pb-0">
+                                                <span className="text-gray-500 w-24">支店名</span>
+                                                <span className="font-bold text-lg">{owner.bank_branch_name}</span>
                                             </div>
-                                            <div className="flex justify-between sm:justify-start sm:gap-4">
-                                                <span className="text-gray-500 w-20">口座種別</span>
+                                            <div className="flex justify-between sm:justify-start sm:gap-4 border-b sm:border-b-0 pb-2 sm:pb-0">
+                                                <span className="text-gray-500 w-24">口座種別</span>
                                                 <span className="font-medium">
                                                     {owner.account_type === 'current' ? '当座' : '普通'}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between sm:justify-start sm:gap-4">
-                                                <span className="text-gray-500 w-20">口座番号</span>
-                                                <span className="font-medium">{owner.account_number}</span>
+                                            <div className="flex justify-between sm:justify-start sm:gap-4 border-b sm:border-b-0 pb-2 sm:pb-0">
+                                                <span className="text-gray-500 w-24">口座番号</span>
+                                                <span className="font-bold text-xl tracking-wider">{owner.account_number}</span>
                                             </div>
-                                            <div className="col-span-1 sm:col-span-2 flex justify-between sm:justify-start sm:gap-4 border-t pt-2 mt-2">
-                                                <span className="text-gray-500 w-20">口座名義</span>
-                                                <span className="font-medium">{owner.account_holder_name}</span>
+                                            <div className="col-span-1 sm:col-span-2 flex justify-between sm:justify-start sm:gap-4 border-t pt-3 mt-2">
+                                                <span className="text-gray-500 w-24">口座名義</span>
+                                                <span className="font-bold text-lg">{owner.account_holder_name}</span>
                                             </div>
                                         </div>
 
-                                        <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-yellow-800 text-xs">
-                                            <strong>振込名義について:</strong><br />
-                                            原則、契約者ご本人様のお名義（カナ）でお振込みください。<br />
-                                            <span className="text-yellow-900 mt-1 block">
-                                                ※ご本人様名義以外の口座からお振込みされる場合は、振込依頼人名を契約者ご本人様のカナ氏名に変更してください。
-                                            </span>
+                                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md flex gap-3 text-blue-900">
+                                            <div className="text-2xl">💡</div>
+                                            <div>
+                                                <strong>振込後の手順:</strong>
+                                                <ol className="list-decimal list-inside mt-1 space-y-1">
+                                                    <li>銀行で振込手続きを行ってください。</li>
+                                                    <li>右上の<strong>「銀行振込完了を報告する」</strong>ボタンを押してください。</li>
+                                                    <li>振込日と名義を入力して送信すると、支払い確認待ちの状態になります。</li>
+                                                </ol>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
