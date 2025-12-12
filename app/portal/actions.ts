@@ -6,13 +6,22 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 export async function createCheckoutSession(formData: FormData) {
-    const targetMonth = formData.get('targetMonth') as string
+    // Expecting a JSON array string of months: '["2024-03", "2024-04"]'
+    const monthsStr = formData.get('months') as string
     const cookieStore = await cookies()
     const contractorId = cookieStore.get('contractor_id')?.value
 
     if (!contractorId) {
         return redirect('/login?message=セッションが切れました。再度ログインしてください。')
     }
+
+    if (!monthsStr) {
+        throw new Error('No months selected')
+    }
+
+    const targetMonths = JSON.parse(monthsStr) as string[]
+    // Sort months just in case
+    targetMonths.sort()
 
     const { createAdminClient } = await import("@/utils/supabase/admin")
     const supabase = createAdminClient()
@@ -26,27 +35,27 @@ export async function createCheckoutSession(formData: FormData) {
         throw new Error('Profile not found')
     }
 
+    const lineItems = targetMonths.map(month => ({
+        price_data: {
+            currency: 'jpy',
+            product_data: {
+                name: `Parking Fee - ${month}`,
+                description: `Monthly parking fee for ${profile.full_name}`,
+            },
+            unit_amount: profile.monthly_fee,
+        },
+        quantity: 1,
+    }))
+
     const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: [
-            {
-                price_data: {
-                    currency: 'jpy',
-                    product_data: {
-                        name: `Parking Fee - ${targetMonth}`,
-                        description: `Monthly parking fee for ${profile.full_name}`,
-                    },
-                    unit_amount: profile.monthly_fee,
-                },
-                quantity: 1,
-            },
-        ],
+        line_items: lineItems,
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&month=${targetMonth}`,
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true`, // Handle success generally
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?canceled=true`,
         metadata: {
             userId: contractorId,
-            targetMonth: targetMonth,
+            targetMonths: JSON.stringify(targetMonths), // Store as JSON string
         },
     })
 
