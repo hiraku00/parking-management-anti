@@ -25,21 +25,43 @@ export async function POST(req: Request) {
     if (event.type === 'checkout.session.completed') {
         const { createAdminClient } = await import("@/utils/supabase/admin")
         const supabase = createAdminClient()
-        const { userId, targetMonth } = session.metadata!
+        const { userId, targetMonth, targetMonths: targetMonthsStr } = session.metadata!
 
-        // Insert payment record
-        const { error } = await supabase.from('payments').insert({
+        // Handle both single month (legacy/fallback) and multiple months (new)
+        let months: string[] = []
+        if (targetMonthsStr) {
+            try {
+                months = JSON.parse(targetMonthsStr)
+            } catch (e) {
+                console.error("Failed to parse targetMonths", e)
+            }
+        } else if (targetMonth) {
+            months = [targetMonth]
+        }
+
+        if (months.length === 0) {
+            console.error("No target months found in metadata")
+            return new NextResponse("Metadata Error", { status: 400 })
+        }
+
+        const amountPerMonth = Math.floor(session.amount_total! / months.length)
+
+        const records = months.map(month => ({
             user_id: userId,
-            amount: session.amount_total,
-            currency: session.currency,
+            amount: amountPerMonth,
+            currency: session.currency || 'jpy',
             status: 'succeeded',
-            target_month: targetMonth,
+            target_month: month,
             stripe_session_id: session.id,
-        })
+            payment_method: 'stripe'
+        }))
+
+        // Insert payment records
+        const { error } = await supabase.from('payments').insert(records)
 
         if (error) {
             console.error('Error inserting payment:', error)
-            return new NextResponse('Database Error', { status: 500 })
+            return new NextResponse(`Database Error: ${error.message || JSON.stringify(error)}`, { status: 500 })
         }
     }
 
