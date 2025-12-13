@@ -35,7 +35,22 @@ export default async function AdminPage() {
     const payments = allPayments?.filter(p => p.status === 'succeeded') || []
     const pendingPayments = allPayments?.filter(p => p.status === 'pending') || []
 
-    // Group payments by user
+    // Group pending payments by transfer request (user + transfer details)
+    const groupedPendingPayments = new Map<string, typeof pendingPayments>()
+    pendingPayments.forEach(p => {
+        const metadata = p.metadata as any
+        // If metadata is empty (old data), fallback to ID to list individually
+        const key = metadata?.transfer_date
+            ? `${p.user_id}-${metadata.transfer_date}-${metadata.transfer_name}`
+            : p.id
+
+        if (!groupedPendingPayments.has(key)) {
+            groupedPendingPayments.set(key, [])
+        }
+        groupedPendingPayments.get(key)?.push(p)
+    })
+
+    // Group paid payments by user for calculation
     const userPaidMonths = new Map<string, Set<string>>()
     payments?.forEach(p => {
         if (!userPaidMonths.has(p.user_id)) {
@@ -55,11 +70,11 @@ export default async function AdminPage() {
             </div>
 
             {/* Pending Approvals */}
-            {pendingPayments.length > 0 && (
+            {groupedPendingPayments.size > 0 && (
                 <Card className="border-yellow-200 bg-yellow-50">
                     <CardHeader>
                         <CardTitle className="text-yellow-800 flex items-center gap-2">
-                            🔔 承認待ちの振込 ({pendingPayments.length})
+                            🔔 承認待ちの振込 ({groupedPendingPayments.size}件)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -75,24 +90,36 @@ export default async function AdminPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {pendingPayments.map((payment) => {
-                                    const contractor = contractors?.find(c => c.id === payment.user_id)
-                                    const metadata = payment.metadata as any
+                                {Array.from(groupedPendingPayments.values()).map((group) => {
+                                    const first = group[0]
+                                    const metadata = first.metadata as any
+                                    const contractor = contractors?.find(c => c.id === first.user_id)
+                                    const ids = group.map(p => p.id)
+                                    const totalAmount = group.reduce((sum, p) => sum + p.amount, 0)
+                                    const sortedMonths = group.map(p => p.target_month).sort()
+
+                                    // Range display
+                                    const monthDisplay = sortedMonths.length > 1
+                                        ? `${sortedMonths[0]} 〜 ${sortedMonths[sortedMonths.length - 1]}`
+                                        : sortedMonths[0]
 
                                     return (
-                                        <TableRow key={payment.id} className="bg-white/50">
-                                            <TableCell>{new Date(payment.created_at).toLocaleDateString('ja-JP')}</TableCell>
+                                        <TableRow key={ids.join(',')} className="bg-white/50">
+                                            <TableCell>{new Date(first.created_at).toLocaleDateString('ja-JP')}</TableCell>
                                             <TableCell className="font-medium">{contractor?.full_name || '不明'}</TableCell>
-                                            <TableCell>{payment.target_month}</TableCell>
+                                            <TableCell>
+                                                {monthDisplay}
+                                                {sortedMonths.length > 1 && <span className="text-xs text-gray-500 ml-1">({sortedMonths.length}ヶ月分)</span>}
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="text-sm">
                                                     <div>{metadata?.transfer_name || '-'}</div>
                                                     <div className="text-gray-500 text-xs">{metadata?.transfer_date || '-'}</div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>¥{payment.amount.toLocaleString()}</TableCell>
+                                            <TableCell>¥{totalAmount.toLocaleString()}</TableCell>
                                             <TableCell>
-                                                <ApprovePaymentButton paymentId={payment.id} />
+                                                <ApprovePaymentButton paymentIds={ids} />
                                             </TableCell>
                                         </TableRow>
                                     )

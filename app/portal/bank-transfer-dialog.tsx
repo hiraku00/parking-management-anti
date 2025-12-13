@@ -146,14 +146,14 @@ export function BankTransferDialog({
                                 </div>
                             </div>
 
-                            <DialogFooter className="pt-2 flex-col gap-3 sm:gap-0">
+                            <DialogFooter className="pt-2 flex flex-col sm:flex-col sm:space-x-0 gap-3">
                                 <Button
                                     className="w-full h-12 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 shadow-md"
                                     onClick={() => setStep('form')}
                                 >
                                     振込手続きが完了しました
                                 </Button>
-                                <p className="text-xs text-center text-muted-foreground mt-2">
+                                <p className="text-xs text-center text-muted-foreground mt-2 w-full">
                                     ※まだ振込がお済みでない場合は、この画面を閉じてください。
                                 </p>
                             </DialogFooter>
