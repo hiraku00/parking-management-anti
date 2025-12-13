@@ -12,9 +12,21 @@ import { PaymentDashboard } from "./payment-dashboard"
 export default async function PortalPage({
     searchParams,
 }: {
-    searchParams: Promise<{ success?: string; month?: string }>
+    searchParams: Promise<{ success?: string; month?: string; months?: string }>
 }) {
-    const { success, month } = await searchParams
+    const { success, month, months } = await searchParams
+
+    let displayMonths = month
+    if (months) {
+        try {
+            const parsed = JSON.parse(months)
+            if (Array.isArray(parsed)) {
+                displayMonths = parsed.join(', ')
+            }
+        } catch (e) {
+            // Ignore parse error
+        }
+    }
     const cookieStore = await cookies()
     const contractorId = cookieStore.get("contractor_id")?.value
 
@@ -64,7 +76,7 @@ export default async function PortalPage({
         <div className="space-y-6">
             {success && (
                 <div className="bg-green-50 text-green-600 p-4 rounded-md">
-                    {month}のお支払いが完了しました。ありがとうございます。
+                    {displayMonths}のお支払いが完了しました。ありがとうございます。
                 </div>
             )}
 
