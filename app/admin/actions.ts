@@ -163,7 +163,7 @@ export async function updateOwnerSettings(formData: FormData) {
     return { success: true }
 }
 
-export async function approvePayment(paymentId: string) {
+export async function approvePayments(paymentIds: string[]) {
     const supabase = await createClient()
 
     // Check auth
@@ -176,10 +176,10 @@ export async function approvePayment(paymentId: string) {
     const { error } = await supabase
         .from('payments')
         .update({ status: 'succeeded' })
-        .eq('id', paymentId)
+        .in('id', paymentIds)
 
     if (error) {
-        console.error('Error approving payment:', error)
+        console.error('Error approving payments:', error)
         return { error: '承認に失敗しました' }
     }
 
