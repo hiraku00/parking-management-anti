@@ -51,7 +51,7 @@ export async function createCheckoutSession(formData: FormData) {
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true`, // Handle success generally
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&months=${encodeURIComponent(JSON.stringify(targetMonths))}`, // Handle success generally
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?canceled=true`,
         metadata: {
             userId: contractorId,
