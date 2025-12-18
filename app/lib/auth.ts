@@ -9,7 +9,7 @@ function getKey() {
     return new TextEncoder().encode(secret)
 }
 
-export async function encrypt(payload: any) {
+export async function encrypt(payload: Record<string, unknown>) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -17,13 +17,13 @@ export async function encrypt(payload: any) {
         .sign(getKey())
 }
 
-export async function decrypt(input: string): Promise<any> {
+export async function decrypt(input: string): Promise<Record<string, unknown> | null> {
     try {
         const { payload } = await jwtVerify(input, getKey(), {
             algorithms: ['HS256'],
         })
-        return payload
-    } catch (error) {
+        return payload as Record<string, unknown>
+    } catch {
         return null
     }
 }

@@ -1,5 +1,3 @@
-import { createClient } from "@/utils/supabase/server"
-import { cookies } from "next/headers"
 import { getSession } from "@/app/lib/auth"
 import { notFound, redirect } from "next/navigation"
 import { ReceiptStyle } from "./receipt-style"

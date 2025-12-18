@@ -38,7 +38,7 @@ export default async function AdminPage() {
     // Group pending payments by transfer request (user + transfer details)
     const groupedPendingPayments = new Map<string, typeof pendingPayments>()
     pendingPayments.forEach(p => {
-        const metadata = p.metadata as any
+        const metadata = p.metadata as { transfer_date?: string; transfer_name?: string } | null
         // If metadata is empty (old data), fallback to ID to list individually
         const key = metadata?.transfer_date
             ? `${p.user_id}-${metadata.transfer_date}-${metadata.transfer_name}`
@@ -92,7 +92,7 @@ export default async function AdminPage() {
                             <TableBody>
                                 {Array.from(groupedPendingPayments.values()).map((group) => {
                                     const first = group[0]
-                                    const metadata = first.metadata as any
+                                    const metadata = first.metadata as { transfer_date?: string; transfer_name?: string } | null
                                     const contractor = contractors?.find(c => c.id === first.user_id)
                                     const ids = group.map(p => p.id)
                                     const totalAmount = group.reduce((sum, p) => sum + p.amount, 0)

@@ -1,11 +1,7 @@
-import { createClient } from "@/utils/supabase/server"
-import { cookies } from "next/headers"
 import { getSession } from "@/app/lib/auth"
 import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { createCheckoutSession } from "./actions"
 import { calculateUnpaidMonths } from "@/utils/calculation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { CollapsibleSection } from "@/components/collapsible-section"
@@ -25,7 +21,7 @@ export default async function PortalPage({
             if (Array.isArray(parsed)) {
                 displayMonths = parsed.join(', ')
             }
-        } catch (e) {
+        } catch {
             // Ignore parse error
         }
     }
@@ -33,7 +29,7 @@ export default async function PortalPage({
     if (!session || !session.id) {
         redirect("/login")
     }
-    const contractorId = session.id
+    const contractorId = session.id as string
 
     // Use Admin Client to bypass RLS for custom contractor auth
     const { createAdminClient } = await import("@/utils/supabase/admin")
@@ -63,8 +59,6 @@ export default async function PortalPage({
     const paidMonths = new Set(payments?.filter(p => p.status === 'succeeded').map((p) => p.target_month))
     const pendingMonths = new Set(payments?.filter(p => p.status === 'pending').map((p) => p.target_month))
 
-    const today = new Date()
-    const currentMonthStr = today.toISOString().slice(0, 7)
 
     // unpaidMonthsFromCalc includes months that are NOT succeeded. 
     // This INCLUDES pending months.
