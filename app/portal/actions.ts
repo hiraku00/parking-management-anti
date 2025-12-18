@@ -1,8 +1,7 @@
 'use server'
 
 import { stripe } from '@/utils/stripe/server'
-import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
+import Stripe from 'stripe'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/app/lib/auth'
 
@@ -52,13 +51,13 @@ export async function createCheckoutSession(formData: FormData) {
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&months=${encodeURIComponent(JSON.stringify(targetMonths))}`, // Handle success generally
+        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&months=${encodeURIComponent(JSON.stringify(targetMonths))}`,
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?canceled=true`,
         metadata: {
             userId: contractorId,
-            targetMonths: JSON.stringify(targetMonths), // Store as JSON string
+            targetMonths: JSON.stringify(targetMonths),
         },
-    })
+    }) as Stripe.Checkout.Session
 
     if (session.url) {
         redirect(session.url)

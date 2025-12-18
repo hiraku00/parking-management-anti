@@ -1,7 +1,6 @@
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { stripe } from '@/utils/stripe/server'
-import { createClient } from '@/utils/supabase/server'
 import Stripe from 'stripe'
 
 export async function POST(req: Request) {
@@ -16,8 +15,9 @@ export async function POST(req: Request) {
             signature,
             process.env.STRIPE_WEBHOOK_SECRET!
         )
-    } catch (error: any) {
-        return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        return new NextResponse(`Webhook Error: ${message}`, { status: 400 })
     }
 
     const session = event.data.object as Stripe.Checkout.Session
