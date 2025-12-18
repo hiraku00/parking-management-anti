@@ -35,7 +35,7 @@ export async function createCheckoutSession(formData: FormData) {
         throw new Error('Profile not found')
     }
 
-    const lineItems = targetMonths.map(month => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = targetMonths.map(month => ({
         price_data: {
             currency: 'jpy',
             product_data: {
@@ -54,10 +54,10 @@ export async function createCheckoutSession(formData: FormData) {
         success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&months=${encodeURIComponent(JSON.stringify(targetMonths))}`,
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?canceled=true`,
         metadata: {
-            userId: contractorId,
+            userId: contractorId as string,
             targetMonths: JSON.stringify(targetMonths),
         },
-    }) as Stripe.Checkout.Session
+    })
 
     if (session.url) {
         redirect(session.url)
