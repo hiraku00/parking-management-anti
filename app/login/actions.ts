@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
+import { encrypt } from '@/app/lib/auth'
 
 export async function loginOwner(formData: FormData) {
     const email = formData.get('email') as string
@@ -46,13 +47,16 @@ export async function loginContractor(formData: FormData) {
     }
 
     // Set secure cookie for contractor session
+    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const session = await encrypt({ id: profile.id, role: 'contractor' })
     const cookieStore = await cookies()
-    cookieStore.set('contractor_id', profile.id, {
+
+    cookieStore.set('contractor_session', session, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
+        expires,
     })
 
     return redirect('/portal')
@@ -63,7 +67,7 @@ export async function logout() {
     await supabase.auth.signOut()
 
     const cookieStore = await cookies()
-    cookieStore.delete('contractor_id')
+    cookieStore.delete('contractor_session')
 
     return redirect('/login')
 }

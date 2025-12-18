@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { getSession } from "@/app/lib/auth"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/login/actions"
 
@@ -9,8 +10,8 @@ export default async function PortalLayout({
 }: {
     children: React.ReactNode
 }) {
-    const cookieStore = await cookies()
-    const contractorId = cookieStore.get("contractor_id")?.value
+    const session = await getSession()
+    const contractorId = session?.id
 
     if (!contractorId) {
         return redirect("/login?message=セッションが切れました。再度ログインしてください。")

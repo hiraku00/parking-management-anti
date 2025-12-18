@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
+import { getSession } from "@/app/lib/auth"
 import { notFound, redirect } from "next/navigation"
 import { ReceiptStyle } from "./receipt-style"
 import { ReceiptControlBar } from "./receipt-control-bar"
@@ -10,8 +11,8 @@ type Props = {
 
 export default async function ReceiptPage({ params }: Props) {
     const { id } = await params
-    const cookieStore = await cookies()
-    const contractorId = cookieStore.get("contractor_id")?.value
+    const session = await getSession()
+    const contractorId = session?.id
 
     if (!contractorId) {
         redirect("/login")
