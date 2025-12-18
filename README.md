@@ -5,7 +5,7 @@
 ## 機能
 
 ### 利用者向け機能
-- **名前+電話番号認証**: 名前と電話番号下4桁で安全にログイン
+- **名前+電話番号認証**: 名前と電話番号下4桁で安全にログイン（Signed JWTによる改ざん防止済）
 - **未払い月の表示**: 契約期間内の未払い月のみを表示し、複数月の一括選択が可能
 - **Stripe決済**: クレジットカードによる安全なオンライン決済
 - **銀行振込報告**: 銀行振込での支払い報告と承認状況の確認
@@ -24,6 +24,8 @@
 - **フロントエンド**: Next.js 15, React, TypeScript, Tailwind CSS
 - **バックエンド**: Supabase (PostgreSQL + Auth)
 - **決済**: Stripe
+- **セキュリティ**: jose (Signed JWT)
+- **テスト**: Vitest
 - **デプロイ**: Vercel
 
 ## セットアップ
@@ -50,7 +52,11 @@ STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
 
 # App
+# App
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
+# 以下のコマンドで生成したランダムな文字列を設定してください
+# openssl rand -base64 32
+AUTH_SECRET=your-generated-auth-secret
 ```
 
 ### インストール
@@ -61,6 +67,9 @@ npm install
 
 # 開発サーバーの起動
 npm run dev
+
+# テストの実行
+npm test
 ```
 
 [http://localhost:3000](http://localhost:3000) にアクセスしてアプリケーションを確認できます。

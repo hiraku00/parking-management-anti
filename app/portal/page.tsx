@@ -1,5 +1,7 @@
 import { createClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
+import { getSession } from "@/app/lib/auth"
+import { redirect } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,8 +29,11 @@ export default async function PortalPage({
             // Ignore parse error
         }
     }
-    const cookieStore = await cookies()
-    const contractorId = cookieStore.get("contractor_id")?.value
+    const session = await getSession()
+    if (!session || !session.id) {
+        redirect("/login")
+    }
+    const contractorId = session.id
 
     // Use Admin Client to bypass RLS for custom contractor auth
     const { createAdminClient } = await import("@/utils/supabase/admin")

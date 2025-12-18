@@ -4,12 +4,13 @@ import { stripe } from '@/utils/stripe/server'
 import { createClient } from '@/utils/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getSession } from '@/app/lib/auth'
 
 export async function createCheckoutSession(formData: FormData) {
     // Expecting a JSON array string of months: '["2024-03", "2024-04"]'
     const monthsStr = formData.get('months') as string
-    const cookieStore = await cookies()
-    const contractorId = cookieStore.get('contractor_id')?.value
+    const authSession = await getSession()
+    const contractorId = authSession?.id
 
     if (!contractorId) {
         return redirect('/login?message=セッションが切れました。再度ログインしてください。')

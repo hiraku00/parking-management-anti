@@ -35,6 +35,14 @@ STRIPE_SECRET_KEY=your-stripe-secret-key
 STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
 NEXT_PUBLIC_BASE_URL=https://your-domain.vercel.app
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+NEXT_PUBLIC_BASE_URL=https://your-domain.vercel.app
+AUTH_SECRET=your-generated-auth-secret
+```
+
+**AUTH_SECRETの生成方法**:
+```bash
+openssl rand -base64 32
 ```
 
 **重要**: `NEXT_PUBLIC_BASE_URL`は実際のVercel URLに設定してください。
