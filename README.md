@@ -11,6 +11,7 @@
 - **銀行振込報告**: 銀行振込での支払い報告と承認状況の確認
 - **支払い履歴**: 過去の支払い履歴を確認
 - **領収書発行**: 支払い履歴から適格請求書対応の領収書を印刷・PDF保存
+- **堅牢なバリデーション**: 全ての入力データに対してサーバーサイドでZodによる厳格な検証を実施
 
 ### オーナー向け機能
 - **契約者管理**: 契約者の追加・編集・削除
@@ -23,6 +24,7 @@
 
 - **フロントエンド**: Next.js 15, React, TypeScript, Tailwind CSS
 - **バックエンド**: Supabase (PostgreSQL + Auth)
+- **バリデーション**: Zod (Type-safe validation)
 - **決済**: Stripe
 - **セキュリティ**: jose (Signed JWT)
 - **テスト**: Vitest
@@ -50,12 +52,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 STRIPE_SECRET_KEY=your-stripe-secret-key
 STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
-
-# App
-# App
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-# 以下のコマンドで生成したランダムな文字列を設定してください
-# openssl rand -base64 32
+NEXT_PUBLIC_BASE_URL=https://your-domain.vercel.app
 AUTH_SECRET=your-generated-auth-secret
 ```
 
