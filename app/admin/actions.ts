@@ -2,13 +2,31 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import {
+    addContractorSchema,
+    updateContractorSchema,
+    deleteContractorSchema,
+    createManualPaymentSchema,
+    updateOwnerSettingsSchema,
+    approvePaymentsSchema,
+} from '@/lib/validations'
 
 export async function addContractor(formData: FormData) {
-    const name = formData.get('name') as string
-    const phoneNumber = formData.get('phoneNumber') as string
-    const monthlyFee = parseInt(formData.get('monthlyFee') as string)
-    const contractStart = formData.get('contractStart') as string
-    const contractEnd = formData.get('contractEnd') as string || null
+    // Validate input
+    const validation = addContractorSchema.safeParse({
+        name: formData.get('name'),
+        phoneNumber: formData.get('phoneNumber'),
+        monthlyFee: formData.get('monthlyFee'),
+        contractStart: formData.get('contractStart'),
+        contractEnd: formData.get('contractEnd'),
+    })
+
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
+    }
+
+    const { name, phoneNumber, monthlyFee, contractStart, contractEnd } = validation.data
 
     // Extract last 4 digits from phone number
     const phoneLast4 = phoneNumber.replace(/\D/g, '').slice(-4)
@@ -24,12 +42,12 @@ export async function addContractor(formData: FormData) {
             phone_number: phoneNumber,
             phone_last4: phoneLast4,
             contract_start_month: contractStart,
-            contract_end_month: contractEnd,
+            contract_end_month: contractEnd || null,
         })
 
     if (error) {
         console.error('Error adding contractor:', error)
-        return { error: 'Failed to add contractor' }
+        return { error: '契約者の追加に失敗しました' }
     }
 
     revalidatePath('/admin')
@@ -37,12 +55,22 @@ export async function addContractor(formData: FormData) {
 }
 
 export async function updateContractor(formData: FormData) {
-    const id = formData.get('id') as string
-    const name = formData.get('name') as string
-    const phoneNumber = formData.get('phoneNumber') as string
-    const monthlyFee = parseInt(formData.get('monthlyFee') as string)
-    const contractStart = formData.get('contractStart') as string
-    const contractEnd = formData.get('contractEnd') as string || null
+    // Validate input
+    const validation = updateContractorSchema.safeParse({
+        id: formData.get('id'),
+        name: formData.get('name'),
+        phoneNumber: formData.get('phoneNumber'),
+        monthlyFee: formData.get('monthlyFee'),
+        contractStart: formData.get('contractStart'),
+        contractEnd: formData.get('contractEnd'),
+    })
+
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
+    }
+
+    const { id, name, phoneNumber, monthlyFee, contractStart, contractEnd } = validation.data
 
     // Extract last 4 digits from phone number
     const phoneLast4 = phoneNumber.replace(/\D/g, '').slice(-4)
@@ -57,13 +85,13 @@ export async function updateContractor(formData: FormData) {
             phone_number: phoneNumber,
             phone_last4: phoneLast4,
             contract_start_month: contractStart,
-            contract_end_month: contractEnd,
+            contract_end_month: contractEnd || null,
         })
         .eq('id', id)
 
     if (error) {
         console.error('Error updating contractor:', error)
-        return { error: 'Failed to update contractor' }
+        return { error: '契約者の更新に失敗しました' }
     }
 
     revalidatePath('/admin')
@@ -71,7 +99,17 @@ export async function updateContractor(formData: FormData) {
 }
 
 export async function deleteContractor(formData: FormData) {
-    const id = formData.get('id') as string
+    // Validate input
+    const validation = deleteContractorSchema.safeParse({
+        id: formData.get('id'),
+    })
+
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
+    }
+
+    const { id } = validation.data
     const supabase = await createClient()
 
     const { error } = await supabase
@@ -83,7 +121,7 @@ export async function deleteContractor(formData: FormData) {
         console.error('Error deleting contractor:', error)
         // Check for foreign key violation (e.g., payment history exists)
         if (error.code === '23503') {
-            return { error: '支払い履歴があるため削除できません。' }
+            return { error: '支払い履歴があるため削除できません' }
         }
         return { error: '契約者の削除に失敗しました' }
     }
@@ -93,11 +131,20 @@ export async function deleteContractor(formData: FormData) {
 }
 
 export async function createManualPayment(formData: FormData) {
-    const userId = formData.get('userId') as string
-    const amount = parseInt(formData.get('amount') as string)
-    const targetMonth = formData.get('targetMonth') as string
-    const paymentMethod = formData.get('paymentMethod') as string || 'cash'
+    // Validate input
+    const validation = createManualPaymentSchema.safeParse({
+        userId: formData.get('userId'),
+        amount: formData.get('amount'),
+        targetMonth: formData.get('targetMonth'),
+        paymentMethod: formData.get('paymentMethod'),
+    })
 
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
+    }
+
+    const { userId, amount, targetMonth, paymentMethod } = validation.data
     const supabase = await createClient()
 
     const { error } = await supabase
@@ -126,17 +173,27 @@ export async function updateOwnerSettings(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-        return { error: 'Unauthorized' }
+        return { error: '認証されていません' }
     }
 
-    const companyName = formData.get('companyName') as string
-    const address = formData.get('address') as string
-    const invoiceNumber = formData.get('invoiceNumber') as string
-    const bankName = formData.get('bankName') as string
-    const branchName = formData.get('branchName') as string
-    const accountType = formData.get('accountType') as string
-    const accountNumber = formData.get('accountNumber') as string
-    const accountHolder = formData.get('accountHolder') as string
+    // Validate input
+    const validation = updateOwnerSettingsSchema.safeParse({
+        companyName: formData.get('companyName'),
+        address: formData.get('address'),
+        invoiceNumber: formData.get('invoiceNumber'),
+        bankName: formData.get('bankName'),
+        branchName: formData.get('branchName'),
+        accountType: formData.get('accountType'),
+        accountNumber: formData.get('accountNumber'),
+        accountHolder: formData.get('accountHolder'),
+    })
+
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
+    }
+
+    const { companyName, address, invoiceNumber, bankName, branchName, accountType, accountNumber, accountHolder } = validation.data
 
     // Update the owner profile. We assume there is only one owner profile linked to this auth user
     const { error } = await supabase
@@ -144,7 +201,7 @@ export async function updateOwnerSettings(formData: FormData) {
         .update({
             company_name: companyName,
             address: address,
-            invoice_registration_number: invoiceNumber,
+            invoice_registration_number: invoiceNumber || null,
             bank_name: bankName,
             bank_branch_name: branchName,
             account_type: accountType,
@@ -168,15 +225,22 @@ export async function approvePayments(paymentIds: string[]) {
 
     // Check auth
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Unauthorized' }
+    if (!user) return { error: '認証されていません' }
 
-    // Verify owner role? RLS handles it if configured correctly, but good to be safe.
-    // Assuming RLS allows owner to update payments.
+    // Validate input
+    const validation = approvePaymentsSchema.safeParse({ paymentIds })
+
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
+    }
+
+    const { paymentIds: validatedIds } = validation.data
 
     const { error } = await supabase
         .from('payments')
         .update({ status: 'succeeded' })
-        .in('id', paymentIds)
+        .in('id', validatedIds)
 
     if (error) {
         console.error('Error approving payments:', error)

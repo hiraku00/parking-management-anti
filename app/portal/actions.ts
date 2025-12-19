@@ -4,10 +4,9 @@ import { stripe } from '@/utils/stripe/server'
 import Stripe from 'stripe'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/app/lib/auth'
+import { createCheckoutSessionSchema, reportBankTransferSchema } from '@/lib/validations'
 
 export async function createCheckoutSession(formData: FormData) {
-    // Expecting a JSON array string of months: '["2024-03", "2024-04"]'
-    const monthsStr = formData.get('months') as string
     const authSession = await getSession()
     const contractorId = authSession?.id
 
@@ -15,11 +14,17 @@ export async function createCheckoutSession(formData: FormData) {
         return redirect('/login?message=セッションが切れました。再度ログインしてください。')
     }
 
-    if (!monthsStr) {
-        throw new Error('No months selected')
+    // Validate input
+    const validation = createCheckoutSessionSchema.safeParse({
+        months: formData.get('months'),
+    })
+
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        throw new Error(error)
     }
 
-    const targetMonths = JSON.parse(monthsStr) as string[]
+    const { months: targetMonths } = validation.data
     // Sort months just in case
     targetMonths.sort()
 
@@ -32,7 +37,7 @@ export async function createCheckoutSession(formData: FormData) {
         .single()
 
     if (!profile) {
-        throw new Error('Profile not found')
+        throw new Error('プロファイルが見つかりません')
     }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = targetMonths.map(month => ({
@@ -65,24 +70,39 @@ export async function createCheckoutSession(formData: FormData) {
 }
 
 export async function reportBankTransfer(formData: FormData) {
-    const contractorId = formData.get('contractorId') as string
-    const monthsStr = formData.get('months') as string
-    const transferName = formData.get('transferName') as string
-    const transferDate = formData.get('transferDate') as string
+    // Validate input
+    const validation = reportBankTransferSchema.safeParse({
+        contractorId: formData.get('contractorId'),
+        months: formData.get('months'),
+        transferName: formData.get('transferName'),
+        transferDate: formData.get('transferDate'),
+    })
 
-    if (!contractorId || !monthsStr || !transferName || !transferDate) {
-        return { error: '必要な情報が不足しています。' }
+    if (!validation.success) {
+        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+        return { error }
     }
 
-    const inputMonths = JSON.parse(monthsStr) as string[]
+    const { contractorId, months: inputMonths, transferName, transferDate } = validation.data
 
     const { createAdminClient } = await import("@/utils/supabase/admin")
     const supabase = createAdminClient()
 
-    // Create payment records for each month
+    // Fetch monthly fee from profile FIRST (fixing hardcoded amount bug)
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('monthly_fee')
+        .eq('id', contractorId)
+        .single()
+
+    if (profileError || !profile) {
+        return { error: 'プロファイルが見つかりません' }
+    }
+
+    // Create payment records for each month with correct amount
     const records = inputMonths.map(month => ({
         user_id: contractorId,
-        amount: 3000, // Ideally fetch this from profile, but passed in dialog for display. Fetching again for safety.
+        amount: profile.monthly_fee, // Use actual monthly fee from profile
         currency: 'jpy',
         status: 'pending', // Pending approval
         target_month: month,
@@ -93,24 +113,13 @@ export async function reportBankTransfer(formData: FormData) {
         }
     }))
 
-    // Fetch monthly fee to be safe
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('monthly_fee')
-        .eq('id', contractorId)
-        .single()
-
-    if (profile) {
-        records.forEach(r => r.amount = profile.monthly_fee)
-    }
-
     const { error } = await supabase
         .from('payments')
         .insert(records)
 
     if (error) {
         console.error('Payment report error:', error)
-        return { error: '報告の送信に失敗しました。' }
+        return { error: '報告の送信に失敗しました' }
     }
 
     // Revalidate paths
