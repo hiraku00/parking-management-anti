@@ -10,9 +10,9 @@ import { PaymentDashboard } from "./payment-dashboard"
 export default async function PortalPage({
     searchParams,
 }: {
-    searchParams: Promise<{ success?: string; month?: string; months?: string }>
+    searchParams: Promise<{ success?: string; month?: string; months?: string; error?: string }>
 }) {
-    const { success, month, months } = await searchParams
+    const { success, month, months, error } = await searchParams
 
     let displayMonths = month
     if (months) {
@@ -74,8 +74,21 @@ export default async function PortalPage({
     return (
         <div className="space-y-6">
             {success && (
-                <div className="bg-green-50 text-green-600 p-4 rounded-md">
-                    {displayMonths}のお支払いが完了しました。ありがとうございます。
+                <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-md flex items-center gap-3">
+                    <span className="text-xl">✅</span>
+                    <div>
+                        <span className="font-bold">{displayMonths}</span>のお支払いが完了しました。ありがとうございます。
+                    </div>
+                </div>
+            )}
+
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md flex items-center gap-3">
+                    <span className="text-xl">⚠️</span>
+                    <div>
+                        <p className="font-bold">エラーが発生しました</p>
+                        <p className="text-sm">{error}</p>
+                    </div>
                 </div>
             )}
 

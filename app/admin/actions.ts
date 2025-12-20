@@ -156,12 +156,12 @@ export async function createManualPayment(formData: FormData) {
             status: 'succeeded',
             target_month: targetMonth,
             stripe_session_id: 'manual_entry', // Mark as manual payment
-            payment_method: paymentMethod,
+            payment_method: paymentMethod as 'cash' | 'bank_transfer',
         })
 
     if (error) {
-        console.error('Error creating manual payment:', error)
-        return { error: '入金記録の作成に失敗しました' }
+        console.error('Admin Manual Payment Error:', { error, userId, targetMonth, amount })
+        return { error: '入金記録の保存に失敗しました' }
     }
 
     revalidatePath('/admin')
@@ -243,8 +243,8 @@ export async function approvePayments(paymentIds: string[]) {
         .in('id', validatedIds)
 
     if (error) {
-        console.error('Error approving payments:', error)
-        return { error: '承認に失敗しました' }
+        console.error('Admin Payment Approval Error:', { error, paymentIds })
+        return { error: '承認処理に失敗しました' }
     }
 
     revalidatePath('/admin')

@@ -27,7 +27,7 @@ export async function loginOwner(formData: FormData) {
     })
 
     if (error) {
-        return redirect('/login?message=認証に失敗しました')
+        return redirect(`/login?message=${encodeURIComponent('認証に失敗しました')}`)
     }
 
     return redirect('/admin')
@@ -59,12 +59,12 @@ export async function loginContractor(formData: FormData) {
         .single()
 
     if (error || !profile) {
-        return redirect('/login?message=契約者が見つかりません')
+        return redirect(`/login?message=${encodeURIComponent('契約者が見つかりません')}`)
     }
 
     // Verify phone_last4
     if (profile.phone_last4 !== phone) {
-        return redirect('/login?message=電話番号が正しくありません')
+        return redirect(`/login?message=${encodeURIComponent('電話番号が正しくありません')}`)
     }
 
     // Set secure cookie for contractor session

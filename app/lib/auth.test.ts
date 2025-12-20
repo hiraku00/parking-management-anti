@@ -28,9 +28,16 @@ describe('Auth Utilities', () => {
 
     it('should return null for tampered token', async () => {
         const token = await encrypt(payload)
-        // Tamper with the token (change last char)
-        const tampered = token.slice(0, -1) + 'X'
-        const result = await decrypt(tampered)
-        expect(result).toBeNull()
+
+        // JWS is header.payload.signature
+        const parts = token.split('.')
+        if (parts.length === 3) {
+            // Tamper with the signature part (the 3rd part)
+            // Change the first few characters of the signature
+            parts[2] = 'X' + parts[2].substring(1)
+            const tampered = parts.join('.')
+            const result = await decrypt(tampered)
+            expect(result).toBeNull()
+        }
     })
 })
