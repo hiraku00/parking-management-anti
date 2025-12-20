@@ -27,6 +27,8 @@ export function ManualPaymentDialog({ contractorId, contractorName, monthlyFee, 
     const [open, setOpen] = useState(false)
     const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set())
     const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer'>('cash')
+    const [error, setError] = useState<string | null>(null)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleMonthToggle = (month: string) => {
         const newSelected = new Set(selectedMonths)
@@ -46,22 +48,33 @@ export function ManualPaymentDialog({ contractorId, contractorName, monthlyFee, 
             return
         }
 
-        // Process sequentially to keep simple logic (could be parallelized)
-        for (const month of Array.from(selectedMonths)) {
-            const formData = new FormData()
-            formData.append('userId', contractorId)
-            formData.append('amount', monthlyFee.toString())
-            formData.append('targetMonth', month)
-            formData.append('paymentMethod', paymentMethod)
+        setIsSubmitting(true)
+        setError(null)
 
-            const result = await createManualPayment(formData)
-            if (result?.error) {
-                alert(`${month}分の消込に失敗しました: ${result.error}`)
+        try {
+            // Process sequentially to keep simple logic (could be parallelized)
+            for (const month of Array.from(selectedMonths)) {
+                const formData = new FormData()
+                formData.append('userId', contractorId)
+                formData.append('amount', monthlyFee.toString())
+                formData.append('targetMonth', month)
+                formData.append('paymentMethod', paymentMethod)
+
+                const result = await createManualPayment(formData)
+                if (result?.error) {
+                    setError(`${month}分の消込に失敗しました: ${result.error}`)
+                    setIsSubmitting(false)
+                    return
+                }
             }
-        }
 
-        setOpen(false)
-        setSelectedMonths(new Set())
+            setOpen(false)
+            setSelectedMonths(new Set())
+        } catch {
+            setError('予期せぬエラーが発生しました。')
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
@@ -95,7 +108,7 @@ export function ManualPaymentDialog({ contractorId, contractorName, monthlyFee, 
                                         name="paymentMethod"
                                         value="cash"
                                         checked={paymentMethod === 'cash'}
-                                        onChange={(e) => setPaymentMethod(e.target.value as 'cash')}
+                                        onChange={() => setPaymentMethod('cash')}
                                         className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                     <span>現金</span>
@@ -106,7 +119,7 @@ export function ManualPaymentDialog({ contractorId, contractorName, monthlyFee, 
                                         name="paymentMethod"
                                         value="bank_transfer"
                                         checked={paymentMethod === 'bank_transfer'}
-                                        onChange={(e) => setPaymentMethod(e.target.value as 'bank_transfer')}
+                                        onChange={() => setPaymentMethod('bank_transfer')}
                                         className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                     <span>銀行振込</span>
@@ -131,13 +144,19 @@ export function ManualPaymentDialog({ contractorId, contractorName, monthlyFee, 
                     </div>
                 )}
 
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm mb-4">
+                        {error}
+                    </div>
+                )}
+
                 <DialogFooter>
                     <div className="flex w-full justify-between items-center">
                         <span className="font-bold">
                             合計: ¥{(selectedMonths.size * monthlyFee).toLocaleString()}
                         </span>
-                        <Button onClick={handleSubmit} disabled={selectedMonths.size === 0}>
-                            消込実行
+                        <Button onClick={handleSubmit} disabled={selectedMonths.size === 0 || isSubmitting}>
+                            {isSubmitting ? '処理中...' : '消込実行'}
                         </Button>
                     </div>
                 </DialogFooter>

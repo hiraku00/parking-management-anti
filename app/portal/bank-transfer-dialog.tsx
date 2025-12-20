@@ -61,6 +61,7 @@ export function BankTransferDialog({
 
     const [transferName, setTransferName] = useState("")
     const [transferDate, setTransferDate] = useState(new Date().toISOString().slice(0, 10))
+    const [error, setError] = useState<string | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const totalAmount = targetMonths.length * monthlyFee
@@ -72,6 +73,7 @@ export function BankTransferDialog({
         if (!confirm('入力内容に間違いはありませんか？')) return
 
         setIsSubmitting(true)
+        setError(null)
         try {
             const formData = new FormData()
             formData.append('contractorId', contractorId)
@@ -81,12 +83,14 @@ export function BankTransferDialog({
 
             const result = await reportBankTransfer(formData)
             if (result?.error) {
-                alert(result.error)
+                setError(result.error)
             } else {
                 setOpen(false)
                 setTransferName("")
                 setStep('info')
             }
+        } catch {
+            setError('予期せぬエラーが発生しました。')
         } finally {
             setIsSubmitting(false)
         }
@@ -175,6 +179,16 @@ export function BankTransferDialog({
                                 <span className="text-lg">✅</span>
                                 振込手続き完了済み
                             </div>
+
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                                    <span className="text-lg">⚠️</span>
+                                    <div>
+                                        <p className="font-bold">エラー</p>
+                                        <p>{error}</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Report Form */}
                             <form onSubmit={handleSubmit} className="space-y-5">

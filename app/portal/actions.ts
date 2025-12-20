@@ -7,65 +7,80 @@ import { getSession } from '@/app/lib/auth'
 import { createCheckoutSessionSchema, reportBankTransferSchema } from '@/lib/validations'
 
 export async function createCheckoutSession(formData: FormData) {
-    const authSession = await getSession()
-    const contractorId = authSession?.id
+    try {
+        const authSession = await getSession()
+        const contractorId = authSession?.id
 
-    if (!contractorId) {
-        return redirect('/login?message=セッションが切れました。再度ログインしてください。')
-    }
+        if (!contractorId) {
+            return redirect('/login?message=セッションが切れました。再度ログインしてください。')
+        }
 
-    // Validate input
-    const validation = createCheckoutSessionSchema.safeParse({
-        months: formData.get('months'),
-    })
+        // Validate input
+        const validation = createCheckoutSessionSchema.safeParse({
+            months: formData.get('months'),
+        })
 
-    if (!validation.success) {
-        const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
-        throw new Error(error)
-    }
+        if (!validation.success) {
+            const error = validation.error.issues[0]?.message || '入力エラーが発生しました'
+            return redirect(`/portal?error=${encodeURIComponent(error)}`)
+        }
 
-    const { months: targetMonths } = validation.data
-    // Sort months just in case
-    targetMonths.sort()
+        const { months: targetMonths } = validation.data
+        // Sort months just in case
+        targetMonths.sort()
 
-    const { createAdminClient } = await import("@/utils/supabase/admin")
-    const supabase = createAdminClient()
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('monthly_fee, full_name')
-        .eq('id', contractorId)
-        .single()
+        const { createAdminClient } = await import("@/utils/supabase/admin")
+        const supabase = createAdminClient()
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('monthly_fee, full_name')
+            .eq('id', contractorId)
+            .single()
 
-    if (!profile) {
-        throw new Error('プロファイルが見つかりません')
-    }
+        if (profileError || !profile) {
+            console.error('Profile fetch error:', profileError)
+            return redirect('/portal?error=プロファイルが見つかりません')
+        }
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = targetMonths.map(month => ({
-        price_data: {
-            currency: 'jpy',
-            product_data: {
-                name: `Parking Fee - ${month}`,
-                description: `Monthly parking fee for ${profile.full_name}`,
+        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = targetMonths.map(month => ({
+            price_data: {
+                currency: 'jpy',
+                product_data: {
+                    name: `Parking Fee - ${month}`,
+                    description: `Monthly parking fee for ${profile.full_name}`,
+                },
+                unit_amount: profile.monthly_fee,
             },
-            unit_amount: profile.monthly_fee,
-        },
-        quantity: 1,
-    }))
+            quantity: 1,
+        }))
 
-    const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: lineItems,
-        mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&months=${encodeURIComponent(JSON.stringify(targetMonths))}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?canceled=true`,
-        metadata: {
-            userId: contractorId as string,
-            targetMonths: JSON.stringify(targetMonths),
-        },
-    })
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: lineItems,
+            mode: 'payment',
+            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?success=true&months=${encodeURIComponent(JSON.stringify(targetMonths))}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/portal?canceled=true`,
+            metadata: {
+                userId: contractorId as string,
+                targetMonths: JSON.stringify(targetMonths),
+            },
+        })
 
-    if (session.url) {
-        redirect(session.url)
+        if (session.url) {
+            redirect(session.url)
+        }
+    } catch (error: unknown) {
+        // If it's a redirect, just rethrow it
+        if (error instanceof Error && 'digest' in error && typeof error.digest === 'string' && error.digest.includes('NEXT_REDIRECT')) {
+            throw error
+        }
+
+        console.error('Stripe Checkout Error:', error)
+        const message = error instanceof Stripe.errors.StripeError
+            ? '決済システムの初期化に失敗しました。時間をおいて再度お試しいただくか、管理者へお問い合わせください。'
+            : '決済エラーが発生しました。'
+
+        return redirect(`/portal?error=${encodeURIComponent(message)}`)
     }
 }
 
@@ -118,8 +133,19 @@ export async function reportBankTransfer(formData: FormData) {
         .insert(records)
 
     if (error) {
-        console.error('Payment report error:', error)
-        return { error: '報告の送信に失敗しました' }
+        // Detailed log for admin
+        console.error('Database Error during reportBankTransfer:', {
+            error,
+            contractorId,
+            months: inputMonths
+        })
+
+        // Context-aware error message for user
+        if (error.code === '23505') { // Unique constraint violation (though unlikely with target_month if not restricted)
+            return { error: '一部の月は既に報告済みか、支払済みの可能性があります。' }
+        }
+
+        return { error: 'サーバーとの通信に失敗しました。時間をおいて再度お試しください。' }
     }
 
     // Revalidate paths
