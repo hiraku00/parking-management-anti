@@ -15,6 +15,15 @@ npm run test:e2e:ui
 npm run test:e2e:headed
 ```
 
+## Test Placement and Naming
+
+To avoid conflicts with the Vitest unit test runner (which may try to run E2E files), we use the following convention:
+
+- **Directory**: `e2e/`
+- **Extension**: `*.pw.ts` (Playwright-specific suffix)
+
+Vitest is configured to ignore the `e2e/` directory, and by using the `.pw.ts` extension instead of `.spec.ts` or `.test.ts`, we ensure standard test runners don't pick them up by mistake.
+
 ## Test Coverage
 
 ### Contractor Flows ✅
@@ -31,9 +40,10 @@ npm run test:e2e:headed
 
 ## Adding New Tests
 
-1. Create test files in the `tests/` directory
-2. Use the existing test files as templates
-3. Follow Playwright best practices for selectors and assertions
+1. Create test files in the `e2e/` directory.
+2. Use the `.pw.ts` extension.
+3. Use existing tests as templates.
+4. Follow Playwright best practices for selectors and assertions.
 
 ## CI Integration
 
@@ -45,7 +55,7 @@ E2E tests require a live database connection and are currently designed for loca
 ## Troubleshooting
 
 If tests fail:
-1. Ensure the development server is running (`npm run dev`)
-2. Check that test data exists in the database (田中次郎 with phone 1234)
-3. Review test output and screenshots in `test-results/` directory
-4. Use `npm run test:e2e:ui` for interactive debugging
+1. Ensure the development server is running (`npm run dev`).
+2. Check that test data exists in the database (田中次郎 with phone 1234).
+3. Review test output and screenshots in the `test-results/` directory.
+4. Use `npm run test:e2e:ui` for interactive debugging.

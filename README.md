@@ -27,7 +27,7 @@
 - **バリデーション**: Zod (Type-safe validation)
 - **決済**: Stripe
 - **セキュリティ**: jose (Signed JWT)
-- **テスト**: Vitest
+- **テスト**: Vitest, Playwright (E2E)
 - **デプロイ**: Vercel
 
 ## セットアップ
@@ -65,8 +65,11 @@ npm install
 # 開発サーバーの起動
 npm run dev
 
-# テストの実行
+# ユニットテストの実行
 npm test
+
+# E2Eテストの実行
+npm run test:e2e
 ```
 
 [http://localhost:3000](http://localhost:3000) にアクセスしてアプリケーションを確認できます。
