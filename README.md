@@ -90,6 +90,23 @@ Supabase SQL Editorで以下のSQLファイルを順番に実行:
 3. イベントを選択: `checkout.session.completed`
 4. Webhook secretを`STRIPE_WEBHOOK_SECRET`環境変数にコピー
 
+### メンテナンススクリプト
+
+データベースの整合性を確認・修正するためのスクリプトが用意されています：
+
+```bash
+# 支払い金額の整合性チェック
+node scripts/check-payment-inconsistencies.js
+
+# 不整合の修正（Dry-runモード）
+node scripts/fix-payment-inconsistencies.js --dry-run
+
+# 不整合の修正（実行）
+node scripts/fix-payment-inconsistencies.js
+```
+
+**注意**: 修正スクリプトを実行する前に、必ずデータベースのバックアップを取得してください。
+
 ## 使い方
 
 ### 利用者の場合
