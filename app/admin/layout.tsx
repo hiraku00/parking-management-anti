@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/login/actions"
 
@@ -35,16 +36,16 @@ export default async function AdminLayout({
             <header className="bg-white shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <div className="flex items-center gap-6">
-                        <a href="/admin" className="text-xl font-bold text-gray-900 hover:text-gray-700">
+                        <Link href="/admin" className="text-xl font-bold text-gray-900 hover:text-gray-700">
                             Owner Dashboard
-                        </a>
+                        </Link>
                         <nav className="flex gap-4">
-                            <a href="/admin" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                            <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-gray-900">
                                 契約者一覧
-                            </a>
-                            <a href="/admin/settings" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                            </Link>
+                            <Link href="/admin/settings" className="text-sm font-medium text-gray-700 hover:text-gray-900">
                                 設定
-                            </a>
+                            </Link>
                         </nav>
                     </div>
                     <form action={logout}>
