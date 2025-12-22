@@ -29,38 +29,38 @@ export default async function LoginPage({
 
                 <Tabs defaultValue={defaultTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-4">
-                        <TabsTrigger value="contractor">利用者</TabsTrigger>
-                        <TabsTrigger value="owner">オーナー</TabsTrigger>
+                        <TabsTrigger value="contractor">ご利用者様</TabsTrigger>
+                        <TabsTrigger value="owner">管理者用</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="contractor">
                         <Card>
                             <CardHeader>
-                                <CardTitle>利用者アクセス</CardTitle>
+                                <CardTitle>ご利用者様ログイン</CardTitle>
                                 <CardDescription>
-                                    登録されているお名前を入力してポータルにアクセスしてください。
+                                    登録されているお名前を入力して、次へお進みください。
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <form action={loginContractor} className="space-y-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="name">お名前</Label>
+                                        <Label htmlFor="name">お名前（フルネーム）</Label>
                                         <Input id="name" name="name" placeholder="例: 田中太郎" required />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="phone">電話番号下4桁</Label>
+                                        <Label htmlFor="phone">電話番号（下4桁）</Label>
                                         <Input
                                             id="phone"
                                             name="phone"
                                             type="text"
                                             pattern="[0-9]{4}"
                                             maxLength={4}
-                                            placeholder="1234"
+                                            placeholder="例: 1234"
                                             required
                                         />
                                     </div>
-                                    <Button type="submit" className="w-full">
-                                        ポータルにアクセス
+                                    <Button type="submit" className="w-full font-bold text-lg h-12">
+                                        ログインする
                                     </Button>
                                 </form>
                             </CardContent>
@@ -70,9 +70,9 @@ export default async function LoginPage({
                     <TabsContent value="owner">
                         <Card>
                             <CardHeader>
-                                <CardTitle>オーナーログイン</CardTitle>
+                                <CardTitle>管理者ログイン</CardTitle>
                                 <CardDescription>
-                                    駐車場管理用のセキュアログイン。
+                                    駐車場管理者専用のログイン画面です。
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -85,8 +85,8 @@ export default async function LoginPage({
                                         <Label htmlFor="password">パスワード</Label>
                                         <Input id="password" name="password" type="password" required />
                                     </div>
-                                    <Button type="submit" className="w-full">
-                                        ログイン
+                                    <Button type="submit" className="w-full font-bold text-lg h-12">
+                                        管理者としてログイン
                                     </Button>
                                 </form>
                             </CardContent>

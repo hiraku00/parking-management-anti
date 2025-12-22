@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { calculateUnpaidMonths } from "@/utils/calculation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CollapsibleSection } from "@/components/collapsible-section"
 import { PaymentDashboard } from "./payment-dashboard"
 
 export default async function PortalPage({
@@ -136,51 +135,59 @@ export default async function PortalPage({
                 </CardContent>
             </Card>
 
-            {/* Payment History - Collapsible */}
-            <CollapsibleSection title="支払い履歴" defaultOpen={false}>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>日付</TableHead>
-                            <TableHead>対象月</TableHead>
-                            <TableHead>金額</TableHead>
-                            <TableHead>ステータス</TableHead>
-                            <TableHead>領収書</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {payments?.map((payment) => (
-                            <TableRow key={payment.id}>
-                                <TableCell>{new Date(payment.created_at).toLocaleDateString('ja-JP')}</TableCell>
-                                <TableCell>{payment.target_month}</TableCell>
-                                <TableCell>¥{payment.amount.toLocaleString()}</TableCell>
-                                <TableCell>
-                                    <Badge variant={payment.status === 'succeeded' ? 'default' : 'secondary'}>
-                                        {payment.status === 'succeeded' ? '支払済' : payment.status}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    {payment.status === 'succeeded' && (
-                                        <div className="flex items-center gap-2">
-                                            <a href={`/portal/receipt/${payment.id}`} target="_blank" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm bg-blue-50 px-3 py-1 rounded-full border border-blue-200 hover:bg-blue-100 transition-colors">
-                                                <span>📄</span>
-                                                発行
-                                            </a>
-                                        </div>
-                                    )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                        {(!payments || payments.length === 0) && (
+            {/* Payment History */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>過去のお支払い履歴</CardTitle>
+                    <CardDescription>
+                        これまでの入金記録です。
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center text-gray-500">
-                                    支払い履歴がありません。
-                                </TableCell>
+                                <TableHead>日付</TableHead>
+                                <TableHead>対象月</TableHead>
+                                <TableHead>金額</TableHead>
+                                <TableHead>状態</TableHead>
+                                <TableHead>領収書</TableHead>
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </CollapsibleSection>
+                        </TableHeader>
+                        <TableBody>
+                            {payments?.map((payment) => (
+                                <TableRow key={payment.id}>
+                                    <TableCell>{new Date(payment.created_at).toLocaleDateString('ja-JP')}</TableCell>
+                                    <TableCell>{payment.target_month}</TableCell>
+                                    <TableCell>¥{payment.amount.toLocaleString()}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={payment.status === 'succeeded' ? 'default' : 'secondary'}>
+                                            {payment.status === 'succeeded' ? '支払済' : payment.status === 'pending' ? '確認中' : payment.status}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {payment.status === 'succeeded' && (
+                                            <div className="flex items-center gap-2">
+                                                <a href={`/portal/receipt/${payment.id}`} target="_blank" className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm bg-blue-50 px-3 py-1 rounded-full border border-blue-200 hover:bg-blue-100 transition-colors">
+                                                    <span>📄</span>
+                                                    領収書を発行
+                                                </a>
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {(!payments || payments.length === 0) && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                                        まだお支払いの履歴はありません。
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
         </div>
     )
 }

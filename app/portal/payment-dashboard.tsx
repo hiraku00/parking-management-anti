@@ -144,7 +144,9 @@ export function PaymentDashboard({ contractorId, unpaidMonths, monthlyFee, owner
                                 }
                             />
                         ) : (
-                            <Button disabled variant="secondary" className="w-full md:w-auto h-12">銀行振込不可</Button>
+                            <div className="flex items-center text-sm text-gray-500 bg-gray-100 px-4 py-2 rounded-lg">
+                                ※銀行振込は現在ご利用いただけません
+                            </div>
                         )}
                     </div>
                 </div>
