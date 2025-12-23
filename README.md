@@ -12,6 +12,7 @@
 - **支払い履歴**: 過去の支払い履歴を確認
 - **領収書発行**: 支払い履歴から適格請求書対応の領収書を印刷・PDF保存
 - **堅牢なバリデーション**: 全ての入力データに対してサーバーサイドでZodによる厳格な検証を実施
+- **高齢者対応UI**: IT用語を排除し、直感的に操作できるユニバーサルデザインを採用
 
 ### オーナー向け機能
 - **契約者管理**: 契約者の追加・編集・削除
@@ -27,7 +28,9 @@
 - **バリデーション**: Zod (Type-safe validation)
 - **決済**: Stripe
 - **セキュリティ**: jose (Signed JWT)
-- **テスト**: Vitest, Playwright (E2E)
+- **セキュリティ**: jose (Signed JWT)
+- **テスト**: Vitest (Unit), Playwright (Smoke/E2E)
+- **CI/CD**: GitHub Actions (Build, Lint, Smoke Test)
 - **デプロイ**: Vercel
 
 ## セットアップ
