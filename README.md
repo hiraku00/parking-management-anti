@@ -28,7 +28,6 @@
 - **バリデーション**: Zod (Type-safe validation)
 - **決済**: Stripe
 - **セキュリティ**: jose (Signed JWT)
-- **セキュリティ**: jose (Signed JWT)
 - **テスト**: Vitest (Unit), Playwright (Smoke/E2E)
 - **CI/CD**: GitHub Actions (Build, Lint, Smoke Test)
 - **デプロイ**: Vercel
