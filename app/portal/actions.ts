@@ -111,7 +111,7 @@ export async function reportBankTransfer(formData: FormData) {
         .single()
 
     if (profileError || !profile) {
-        return { error: 'プロファイルが見つかりません' }
+        return { error: '契約者情報が見つかりませんでした。再度ログインをお試しください。' }
     }
 
     // Create payment records for each month with correct amount

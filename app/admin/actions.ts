@@ -47,7 +47,7 @@ export async function addContractor(formData: FormData) {
 
     if (error) {
         console.error('Error adding contractor:', error)
-        return { error: '契約者の追加に失敗しました' }
+        return { error: '契約者の追加中にシステムエラーが発生しました。入力内容を確認して、もう一度お試しください。' }
     }
 
     revalidatePath('/admin')
@@ -91,7 +91,7 @@ export async function updateContractor(formData: FormData) {
 
     if (error) {
         console.error('Error updating contractor:', error)
-        return { error: '契約者の更新に失敗しました' }
+        return { error: '契約者情報の更新中にエラーが発生しました。しばらく待ってから再度保存してください。' }
     }
 
     revalidatePath('/admin')
@@ -121,9 +121,9 @@ export async function deleteContractor(formData: FormData) {
         console.error('Error deleting contractor:', error)
         // Check for foreign key violation (e.g., payment history exists)
         if (error.code === '23503') {
-            return { error: '支払い履歴があるため削除できません' }
+            return { error: '過去の入金記録があるため、データを削除することができません。' }
         }
-        return { error: '契約者の削除に失敗しました' }
+        return { error: '契約者の削除中にエラーが発生しました。' }
     }
 
     revalidatePath('/admin')
@@ -161,7 +161,7 @@ export async function createManualPayment(formData: FormData) {
 
     if (error) {
         console.error('Admin Manual Payment Error:', { error, userId, targetMonth, amount })
-        return { error: '入金記録の保存に失敗しました' }
+        return { error: '入金記録の保存に失敗しました。画面を更新して再度お試しください。' }
     }
 
     revalidatePath('/admin')
@@ -213,7 +213,7 @@ export async function updateOwnerSettings(formData: FormData) {
 
     if (error) {
         console.error('Error updating owner settings:', error)
-        return { error: '設定の保存に失敗しました' }
+        return { error: '設定の保存中にエラーが発生しました。しばらく待ってから再度お試しください。' }
     }
 
     revalidatePath('/admin/settings')
