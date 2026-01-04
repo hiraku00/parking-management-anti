@@ -1,5 +1,8 @@
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
 interface OwnerInfo {
     bank_name: string | null
@@ -17,13 +20,15 @@ interface BankTransferInfoStepProps {
 }
 
 export function BankTransferInfoStep({ totalAmount, targetMonths, owner, onNext }: BankTransferInfoStepProps) {
+    const [isConfirmed, setIsConfirmed] = useState(false)
+
     return (
         <>
             <DialogHeader>
                 <DialogTitle>STEP 1. 振込先の確認</DialogTitle>
                 <DialogDescription>
                     まずは以下の口座へ、合計金額をお振込みください。<br />
-                    <strong>お振込みが完了してから</strong>、次へ進んでください。
+                    <strong>お振込みが完了してから</strong>、確認にチェックを入れて進んでください。
                 </DialogDescription>
             </DialogHeader>
 
@@ -67,18 +72,38 @@ export function BankTransferInfoStep({ totalAmount, targetMonths, owner, onNext 
                     </div>
                 </div>
 
+                {/* Confirmation Checkbox */}
+                <div className="flex items-start space-x-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <Checkbox
+                        id="confirm-transfer"
+                        checked={isConfirmed}
+                        onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
+                        className="mt-1"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label
+                            htmlFor="confirm-transfer"
+                            className="text-sm font-bold text-orange-900 leading-snug cursor-pointer"
+                        >
+                            上記口座への振り込みを完了しました
+                        </Label>
+                        <p className="text-xs text-orange-700 font-medium">
+                            ※振り込み前に次へ進むことはできません
+                        </p>
+                    </div>
+                </div>
+
                 <DialogFooter className="pt-2 flex flex-col sm:flex-col sm:space-x-0 gap-3">
                     <Button
-                        className="w-full h-12 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 shadow-md"
+                        className="w-full h-12 text-lg font-bold bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all disabled:opacity-30 disabled:grayscale"
                         onClick={onNext}
+                        disabled={!isConfirmed}
                     >
-                        振込手続きが完了しました
+                        振込報告画面へ進む
                     </Button>
-                    <p className="text-xs text-center text-muted-foreground mt-2 w-full">
-                        ※まだ振込がお済みでない場合は、この画面を閉じてください。
-                    </p>
                 </DialogFooter>
             </div>
         </>
     )
 }
+
