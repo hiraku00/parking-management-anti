@@ -17,7 +17,7 @@ describe('Auth Utilities', () => {
         const decoded = await decrypt(token)
         expect(decoded).toMatchObject(payload)
         // Check if expiration is set (approx)
-        expect(decoded.exp).toBeDefined()
+        expect(decoded?.exp).toBeDefined()
     })
 
     it('should return null for invalid token', async () => {
